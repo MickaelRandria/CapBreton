@@ -1,0 +1,26 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  background: #9ad0c9;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #9ad0c9;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.leaflet-container {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}

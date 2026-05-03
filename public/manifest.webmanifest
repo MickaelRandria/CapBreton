@@ -1,0 +1,21 @@
+{
+  "name": "HOSSEGOR 2026",
+  "short_name": "Hossegor",
+  "description": "Guide de voyage mobile pour Hossegor et Capbreton avec itinéraire, budget, favoris et carte.",
+  "lang": "fr-FR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#edf6f0",
+  "theme_color": "#1b4332",
+  "categories": ["travel", "lifestyle", "navigation"],
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
