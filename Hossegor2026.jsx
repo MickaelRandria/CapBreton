@@ -592,7 +592,6 @@ export default function Hossegor2026() {
     { id: "home", label: "Accueil", icon: Home },
     { id: "favorites", label: "Favoris", icon: Heart },
     { id: "profile", label: "Profil", icon: User },
-    { id: "ia", label: "Gemini", icon: Sparkles },
     { id: "map", label: "Carte", icon: MapIcon },
   ];
 
@@ -763,7 +762,7 @@ INSTRUCTIONS :
         parts: [{ text: m.content }],
       }));
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -908,13 +907,13 @@ INSTRUCTIONS :
               <button
                 type="button"
                 onClick={() => {
-                  setActiveNav("map");
+                  setActiveNav("ia");
                   setQuickMenuOpen(false);
                 }}
-                className="flex items-center justify-center gap-2 rounded-3xl bg-white px-3 py-3 text-xs font-black text-[#1b4332]"
+                className="flex items-center justify-center gap-2 rounded-3xl bg-gradient-to-br from-violet-500 to-indigo-600 px-3 py-3 text-xs font-black text-white shadow-md"
               >
-                <MapIcon className="h-4 w-4" />
-                Carte
+                <Sparkles className="h-4 w-4" />
+                Assistant IA
               </button>
               <button
                 type="button"
@@ -1128,7 +1127,7 @@ INSTRUCTIONS :
           )}
         </main>
 
-        <nav className="fixed bottom-4 left-1/2 z-30 grid w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 grid-cols-6 gap-1 rounded-[2rem] bg-[#48a69e] p-2 shadow-[0_20px_60px_rgba(27,67,50,0.3)] backdrop-blur md:bottom-8">
+        <nav className="fixed bottom-4 left-1/2 z-30 grid w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 grid-cols-5 gap-1 rounded-[2rem] bg-[#48a69e] p-2 shadow-[0_20px_60px_rgba(27,67,50,0.3)] backdrop-blur md:bottom-8">
           {navItems.slice(0, 2).map((item) => {
             const Icon = item.icon;
             const active = activeNav === item.id;
@@ -1164,7 +1163,7 @@ INSTRUCTIONS :
             </button>
           </div>
 
-          {navItems.slice(2, 5).map((item) => {
+          {navItems.slice(2, 4).map((item) => {
             const Icon = item.icon;
             const active = activeNav === item.id;
 
