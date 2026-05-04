@@ -759,7 +759,7 @@ INSTRUCTIONS :
     try {
       const contents = history.map((m) => ({
         role: m.role === "user" ? "user" : "model",
-        parts: [{ text: m.content }],
+        parts: [{ text: m.content || " " }],
       }));
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
@@ -782,9 +782,10 @@ INSTRUCTIONS :
         try {
           suggestedActivity = JSON.parse(match[1].trim());
           text = raw.replace(/\[ACTIVITE\][\s\S]*?\[\/ACTIVITE\]/, "").trim();
+          if (!text) text = "Voici ma suggestion d'activité !";
         } catch (e) { /* ignore parse error */ }
       }
-      setAiMessages((prev) => [...prev, { role: "model", content: text, suggestedActivity }]);
+      setAiMessages((prev) => [...prev, { role: "model", content: text || " ", suggestedActivity }]);
     } catch {
       setAiMessages((prev) => [...prev, { role: "model", content: "Erreur de connexion. Vérifie ta connexion internet." }]);
     } finally {
