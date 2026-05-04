@@ -919,7 +919,7 @@ export default function Hossegor2026() {
                       return (() => {
                         const { Icon: WIcon, label } = getWeatherInfo(weather.hourly.weathercode[i]);
                         return (
-                          <div key={timeString} className={`min-w-[70px] rounded-[1.25rem] p-3 text-center shadow-[0_8px_20px_rgba(27,67,50,0.08)] ${isNow ? 'bg-[#1b4332] text-white ring-2 ring-[#74c69d]' : 'bg-white'}`}>
+                          <div key={timeString} className={`shrink-0 min-w-[76px] rounded-[1.25rem] p-3 text-center shadow-[0_8px_20px_rgba(27,67,50,0.08)] ${isNow ? 'bg-[#1b4332] text-white ring-2 ring-[#74c69d]' : 'bg-white'}`}>
                             <p className={`text-[11px] font-black ${isNow ? 'text-[#74c69d]' : 'text-[#52796f]'}`}>{isNow ? 'Maintenant' : `${date.getHours()}h`}</p>
                             <WIcon className={`mx-auto my-1.5 h-6 w-6 ${isNow ? 'text-[#74c69d]' : 'text-[#74c69d]'}`} />
                             <p className={`text-[10px] font-semibold ${isNow ? 'text-white/70' : 'text-[#52796f]/80'}`}>{label}</p>
