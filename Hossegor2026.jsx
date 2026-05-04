@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, Marker, Polyline, Popup, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -24,6 +24,7 @@ import {
   Navigation,
   Plus,
   Save,
+  Send,
   Search,
   ShoppingBag,
   SlidersHorizontal,
@@ -57,6 +58,7 @@ function getWeatherInfo(code) {
 }
 
 const STORAGE_KEY = "hossegor-2026-activities";
+const GEMINI_KEY = "AIzaSyBKtA4WKsTrXcE24No1DZ3sHmgAaa9BXvk";
 
 const days = [
   { id: "lundi", short: "Lundi 04", label: "Lundi 04 mai" },
@@ -498,6 +500,9 @@ export default function Hossegor2026() {
   const [form, setForm] = useState({ ...blankForm });
   const [formOpen, setFormOpen] = useState(false);
   const [weather, setWeather] = useState(null);
+  const [aiMessages, setAiMessages] = useState([]);
+  const [aiInput, setAiInput] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
   const [bellRead, setBellRead] = useState(false);
 
   useEffect(() => {
@@ -587,6 +592,7 @@ export default function Hossegor2026() {
     { id: "home", label: "Accueil", icon: Home },
     { id: "favorites", label: "Favoris", icon: Heart },
     { id: "profile", label: "Profil", icon: User },
+    { id: "ia", label: "Gemini", icon: Sparkles },
     { id: "map", label: "Carte", icon: MapIcon },
   ];
 
@@ -710,6 +716,107 @@ export default function Hossegor2026() {
     setActiveCategory(null);
     setActiveDay("lundi");
     setActiveNav("home");
+  };
+
+  const buildSystemPrompt = () => {
+    const now = new Date();
+    const meteo = weather
+      ? `${Math.round(weather.current.temperature)}°C, ${getWeatherInfo(weather.current.weathercode).label}`
+      : "non disponible";
+    const itinerary = activities
+      .map((a) => `- ${a.day} ${a.time} : ${a.title} (${a.category}, ${a.location}${
+        a.price ? `, ${a.price}€` : ", gratuit"
+      }${a.done ? " ✓ fait" : ""})`)
+      .join("\n");
+    return `Tu es l'assistant IA du guide de voyage HOSSEGOR 2026, un groupe d'amis appelé "Capbreton crew" en séjour à Hossegor et Capbreton, Landes, France, du 4 au 6 mai 2026.
+
+CONTEXTE ACTUEL :
+- Heure : ${now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+- Date : ${now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+- Météo à Hossegor : ${meteo}
+
+ITINÉRAIRE PRÉVU :
+${itinerary}
+
+INSTRUCTIONS :
+- Réponds toujours en français, de façon concise et pratique, comme un ami local.
+- Connais bien la région : Hossegor = surf (plage de la Gravière, Les Culs Nuls), restaurants fruits de mer, boutiques surfwear, lac d'Hossegor. Capbreton = estacade, port, restaurants, marché.
+- Si l'utilisateur demande de suggérer, trouver ou ajouter une activité/resto/sortie, génère une activité au format suivant EN FIN DE RÉPONSE (une seule fois) :
+[ACTIVITE]
+{"title": "Nom du lieu", "category": "Resto", "description": "Description courte et enthousiaste.", "location": "Quartier ou nom du lieu", "price": 0, "time": "20h00", "day": "lundi", "coords": [43.66, -1.43]}
+[/ACTIVITE]
+- Les valeurs de "category" possibles : Resto, Hôtel, Spa, Shopping.
+- Les valeurs de "day" possibles : lundi, mardi, mercredi.
+- Sois enthousiaste et pratique. Evite les longues listes, préfère 1 vraie bonne adresse.`;
+  };
+
+  const sendAiMessage = async () => {
+    if (!aiInput.trim() || aiLoading) return;
+    const userMsg = { role: "user", content: aiInput.trim() };
+    const history = [...aiMessages, userMsg];
+    setAiMessages(history);
+    setAiInput("");
+    setAiLoading(true);
+    try {
+      const contents = history.map((m) => ({
+        role: m.role === "user" ? "user" : "model",
+        parts: [{ text: m.content }],
+      }));
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: buildSystemPrompt() }] },
+            contents,
+            generationConfig: { temperature: 0.8, maxOutputTokens: 1024 },
+          }),
+        }
+      );
+      const data = await res.json();
+      const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "Désolé, je n'ai pas pu répondre.";
+      const match = raw.match(/\[ACTIVITE\]([\s\S]*?)\[\/ACTIVITE\]/);
+      let suggestedActivity = null;
+      let text = raw;
+      if (match) {
+        try {
+          suggestedActivity = JSON.parse(match[1].trim());
+          text = raw.replace(/\[ACTIVITE\][\s\S]*?\[\/ACTIVITE\]/, "").trim();
+        } catch (e) { /* ignore parse error */ }
+      }
+      setAiMessages((prev) => [...prev, { role: "model", content: text, suggestedActivity }]);
+    } catch {
+      setAiMessages((prev) => [...prev, { role: "model", content: "Erreur de connexion. Vérifie ta connexion internet." }]);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const addAiActivity = (suggested) => {
+    const newAct = {
+      id: `ai-${Date.now()}`,
+      day: suggested.day || "lundi",
+      time: suggested.time || "12h00",
+      title: suggested.title || "Nouvelle activité",
+      category: suggested.category || "Resto",
+      price: Number(suggested.price) || 0,
+      rating: 4.5,
+      image: images.beach,
+      location: suggested.location || "Hossegor",
+      coords: Array.isArray(suggested.coords) ? suggested.coords : [43.66, -1.43],
+      distance: "",
+      duration: "",
+      weather: "",
+      description: suggested.description || "",
+      link: "",
+      favorite: false,
+      done: false,
+    };
+    setActivities((cur) => [...cur, newAct]);
+    setActiveDay(newAct.day);
+    setActiveNav("home");
+    setToast(`"${newAct.title}" ajouté à l'itinéraire !`);
   };
 
   return (
@@ -897,7 +1004,16 @@ export default function Hossegor2026() {
         </header>
 
         <main className="px-5 pb-28 pt-5">
-          {activeNav === "map" ? (
+          {activeNav === "ia" ? (
+            <AIView
+              messages={aiMessages}
+              input={aiInput}
+              loading={aiLoading}
+              onInputChange={setAiInput}
+              onSend={sendAiMessage}
+              onAddActivity={addAiActivity}
+            />
+          ) : activeNav === "map" ? (
             <MapView activities={activities} onOpen={setSelectedId} />
           ) : activeNav === "profile" ? (
             <ProfileView
@@ -1012,7 +1128,7 @@ export default function Hossegor2026() {
           )}
         </main>
 
-        <nav className="fixed bottom-4 left-1/2 z-30 grid w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 grid-cols-5 gap-1 rounded-[2rem] bg-[#48a69e] p-2 shadow-[0_20px_60px_rgba(27,67,50,0.3)] backdrop-blur md:bottom-8">
+        <nav className="fixed bottom-4 left-1/2 z-30 grid w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 grid-cols-6 gap-1 rounded-[2rem] bg-[#48a69e] p-2 shadow-[0_20px_60px_rgba(27,67,50,0.3)] backdrop-blur md:bottom-8">
           {navItems.slice(0, 2).map((item) => {
             const Icon = item.icon;
             const active = activeNav === item.id;
@@ -1048,7 +1164,7 @@ export default function Hossegor2026() {
             </button>
           </div>
 
-          {navItems.slice(2, 4).map((item) => {
+          {navItems.slice(2, 5).map((item) => {
             const Icon = item.icon;
             const active = activeNav === item.id;
 
@@ -1915,3 +2031,126 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
     </section>
   );
 }
+
+function AIView({ messages, input, loading, onInputChange, onSend, onAddActivity }) {
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  const suggestions = [
+    "Il pleut cet aprem, qu'est-ce qu'on fait ?",
+    "Suggère-nous un bon restau pour ce soir",
+    "On veut une activité sportive demain matin",
+    "Quels sont les meilleurs spots de surf ici ?",
+  ];
+
+  return (
+    <section className="flex flex-col" style={{ height: "calc(100dvh - 220px)" }}>
+      {/* En-tête */}
+      <div className="mb-4 flex items-center gap-3">
+        <div className="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 text-white shadow-lg">
+          <Sparkles className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-xs font-bold text-[#52796f]">Propulsé par Gemini</p>
+          <h2 className="text-xl font-black text-[#1b4332]">Assistant IA</h2>
+        </div>
+      </div>
+
+      {/* Zone messages */}
+      <div className="flex-1 overflow-y-auto space-y-3 pb-3">
+        {messages.length === 0 && (
+          <div className="rounded-[2rem] bg-gradient-to-br from-violet-50 to-indigo-50 p-5 border border-violet-100">
+            <p className="text-sm font-black text-indigo-800 mb-1">👋 Bonjour Capbreton crew !</p>
+            <p className="text-sm text-indigo-700 mb-4 leading-relaxed">
+              Je connais votre itinéraire et la météo. Pose-moi n'importe quelle question sur Hossegor, ou demande-moi de suggérer une activité.
+            </p>
+            <div className="space-y-2">
+              {suggestions.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => onInputChange(s)}
+                  className="w-full text-left rounded-2xl bg-white px-4 py-3 text-xs font-bold text-indigo-700 shadow-sm hover:bg-indigo-50 transition border border-indigo-100"
+                >
+                  "{s}"
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div
+              className={`max-w-[88%] rounded-[1.5rem] px-4 py-3 ${
+                msg.role === "user"
+                  ? "rounded-br-md bg-[#1b4332] text-white"
+                  : "rounded-bl-md bg-white shadow-[0_4px_16px_rgba(27,67,50,0.08)]"
+              }`}
+            >
+              <p className={`text-sm font-semibold leading-relaxed whitespace-pre-wrap ${msg.role === "user" ? "text-white" : "text-[#1b4332]"}`}>
+                {msg.content}
+              </p>
+
+              {msg.suggestedActivity && (
+                <div className="mt-3 rounded-2xl bg-gradient-to-br from-[#edf6f0] to-[#d8eadf] p-4 border border-[#b7e4c7]">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-[#52796f] mb-2">✨ Activité suggérée</p>
+                  <p className="font-black text-[#1b4332] text-base">{msg.suggestedActivity.title}</p>
+                  <p className="text-xs text-[#52796f] mt-0.5">
+                    {msg.suggestedActivity.day} · {msg.suggestedActivity.time} · {msg.suggestedActivity.location}
+                    {msg.suggestedActivity.price > 0 ? ` · ${msg.suggestedActivity.price}€` : " · Gratuit"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onAddActivity(msg.suggestedActivity)}
+                    className="mt-3 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-xs font-black text-white shadow-sm hover:bg-[#1b4332] transition"
+                  >
+                    + Ajouter à l'itinéraire
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {loading && (
+          <div className="flex justify-start">
+            <div className="rounded-[1.5rem] rounded-bl-md bg-white px-5 py-4 shadow-[0_4px_16px_rgba(27,67,50,0.08)]">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="h-2 w-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="h-2 w-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div className="flex gap-2 pt-2 border-t border-[#e9f5ee]">
+        <input
+          value={input}
+          onChange={(e) => onInputChange(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && onSend()}
+          placeholder="Pose ta question à Gemini..."
+          className="flex-1 rounded-3xl bg-white px-4 py-3.5 text-sm font-semibold outline-none shadow-sm ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-violet-400 placeholder:text-[#52796f]/60"
+        />
+        <button
+          type="button"
+          onClick={onSend}
+          disabled={loading || !input.trim()}
+          className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-lg disabled:opacity-40 transition hover:scale-105"
+          aria-label="Envoyer"
+        >
+          <Send className="h-5 w-5" />
+        </button>
+      </div>
+    </section>
+  );
+}
+
