@@ -37,6 +37,7 @@ import {
   X,
   Download,
   Crosshair,
+  ExternalLink,
   Zap,
 } from "lucide-react";
 
@@ -245,10 +246,12 @@ const blankForm = {
   location: "Hossegor",
   latitude: 43.6618,
   longitude: -1.4287,
-  distance: "2 km",
-  duration: "8 min",
-  weather: "20°C",
+  distance: "",
+  duration: "",
+  weather: "",
   description: "",
+  link: "",
+  done: false,
 };
 
 const currency = new Intl.NumberFormat("fr-FR", {
@@ -324,7 +327,7 @@ function activityToForm(activity) {
   };
 }
 
-function normalizeForm(form, id, favorite = false) {
+function normalizeForm(form, id, favorite = false, done = false) {
   return {
     id: id || `activity-${Date.now()}`,
     day: form.day,
@@ -339,13 +342,13 @@ function normalizeForm(form, id, favorite = false) {
       Number(form.latitude) || blankForm.latitude,
       Number(form.longitude) || blankForm.longitude,
     ],
-    distance: form.distance.trim() || "2 km",
-    duration: form.duration.trim() || "8 min",
-    weather: form.weather.trim() || "20°C",
-    description:
-      form.description.trim() ||
-      "Une adresse ajoutée à l'itinéraire HOSSEGOR 2026.",
+    distance: form.distance.trim(),
+    duration: form.duration.trim(),
+    weather: form.weather.trim(),
+    description: form.description.trim() || "Une adresse ajoutée à l'itinéraire HOSSEGOR 2026.",
+    link: form.link?.trim() || "",
     favorite,
+    done,
   };
 }
 
@@ -379,9 +382,9 @@ function InfoChip({ icon: Icon, label, value }) {
   );
 }
 
-function ActivityCard({ activity, onOpen, onEdit, onDelete, onFavorite }) {
+function ActivityCard({ activity, onOpen, onEdit, onDelete, onFavorite, onToggleDone }) {
   return (
-    <article className="group overflow-hidden rounded-[2rem] bg-white shadow-[0_18px_45px_rgba(27,67,50,0.14)]">
+    <article className={`group overflow-hidden rounded-[2rem] shadow-[0_18px_45px_rgba(27,67,50,0.14)] transition-opacity ${activity.done ? 'opacity-60' : 'bg-white'}`} style={activity.done ? {background:'#f0f7f4'} : {background:'white'}}>
       <div className="relative h-56 overflow-hidden">
         <button
           type="button"
@@ -391,12 +394,17 @@ function ActivityCard({ activity, onOpen, onEdit, onDelete, onFavorite }) {
           <img
             src={activity.image}
             alt=""
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            className={`h-full w-full object-cover transition duration-500 group-hover:scale-105 ${activity.done ? 'grayscale' : ''}`}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
           <div className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1.5 text-xs font-black text-[#1b4332] shadow-lg backdrop-blur">
             {activity.time}
           </div>
+          {activity.done && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="rounded-full bg-[#1b4332]/80 px-4 py-2 text-sm font-black text-white backdrop-blur">✓ Fait</span>
+            </div>
+          )}
           <div className="absolute bottom-4 left-4 right-4">
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="rounded-full bg-[#74c69d]/95 px-3 py-1 text-xs font-black text-[#1b4332]">
@@ -432,10 +440,17 @@ function ActivityCard({ activity, onOpen, onEdit, onDelete, onFavorite }) {
       </div>
 
       <div className="flex items-center justify-between px-4 py-4">
-        <div className="flex items-center gap-2 text-sm font-bold text-[#1b4332]">
-          <MapPin className="h-4 w-4 text-[#2d6a4f]" />
-          <span className="truncate">{activity.distance}</span>
-        </div>
+        <button
+          type="button"
+          onClick={() => onToggleDone(activity.id)}
+          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black transition ${
+            activity.done
+              ? 'bg-[#74c69d] text-[#1b4332]'
+              : 'bg-[#edf6f0] text-[#52796f] hover:bg-[#74c69d] hover:text-[#1b4332]'
+          }`}
+        >
+          {activity.done ? '✓ Fait' : 'Marquer fait'}
+        </button>
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -483,6 +498,7 @@ export default function Hossegor2026() {
   const [form, setForm] = useState({ ...blankForm });
   const [formOpen, setFormOpen] = useState(false);
   const [weather, setWeather] = useState(null);
+  const [bellRead, setBellRead] = useState(false);
 
   useEffect(() => {
     async function fetchWeather() {
@@ -667,7 +683,7 @@ export default function Hossegor2026() {
   const saveActivity = (event) => {
     event.preventDefault();
     const previous = activities.find((activity) => activity.id === editingId);
-    const nextActivity = normalizeForm(form, editingId, previous?.favorite);
+    const nextActivity = normalizeForm(form, editingId, previous?.favorite, previous?.done ?? false);
 
     setActivities((current) => {
       if (!editingId) return [...current, nextActivity];
@@ -678,6 +694,14 @@ export default function Hossegor2026() {
     setActiveDay(nextActivity.day);
     setFormOpen(false);
     setEditingId(null);
+  };
+
+  const toggleDone = (id) => {
+    setActivities((current) =>
+      current.map((activity) =>
+        activity.id === id ? { ...activity, done: !activity.done } : activity,
+      ),
+    );
   };
 
   const resetTrip = () => {
@@ -716,13 +740,14 @@ export default function Hossegor2026() {
                 type="button"
                 onClick={() => {
                   setNoticeOpen((current) => !current);
+                  setBellRead(true);
                   setQuickMenuOpen(false);
                 }}
                 className="relative grid h-11 w-11 place-items-center rounded-full bg-white text-[#1b4332]"
                 aria-label="Afficher le résumé"
               >
                 <Bell className="h-5 w-5" />
-                <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[#ef476f]" />
+                {!bellRead && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[#ef476f]" />}
               </button>
               <button
                 type="button"
@@ -826,7 +851,7 @@ export default function Hossegor2026() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Rechercher une adresse"
+              placeholder="Filtrer les activités..."
               className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-[#52796f]/70"
             />
             <button
@@ -888,16 +913,17 @@ export default function Hossegor2026() {
                     {weather.hourly.time.map((timeString, i) => {
                       const date = new Date(timeString);
                       const now = new Date();
+                      const isNow = date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate() && date.getHours() === now.getHours();
                       if (date < new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours())) return null;
                       if (date > new Date(now.getTime() + 24 * 60 * 60 * 1000)) return null;
                       return (() => {
                         const { Icon: WIcon, label } = getWeatherInfo(weather.hourly.weathercode[i]);
                         return (
-                          <div key={timeString} className="min-w-[70px] rounded-[1.25rem] bg-white p-3 text-center shadow-[0_8px_20px_rgba(27,67,50,0.04)]">
-                            <p className="text-[11px] font-bold text-[#52796f]">{date.getHours()}h</p>
-                            <WIcon className="mx-auto my-1.5 h-6 w-6 text-[#74c69d]" />
-                            <p className="text-[10px] font-semibold text-[#52796f]/80">{label}</p>
-                            <p className="text-sm font-black text-[#1b4332]">{Math.round(weather.hourly.temperature_2m[i])}°</p>
+                          <div key={timeString} className={`min-w-[70px] rounded-[1.25rem] p-3 text-center shadow-[0_8px_20px_rgba(27,67,50,0.08)] ${isNow ? 'bg-[#1b4332] text-white ring-2 ring-[#74c69d]' : 'bg-white'}`}>
+                            <p className={`text-[11px] font-black ${isNow ? 'text-[#74c69d]' : 'text-[#52796f]'}`}>{isNow ? 'Maintenant' : `${date.getHours()}h`}</p>
+                            <WIcon className={`mx-auto my-1.5 h-6 w-6 ${isNow ? 'text-[#74c69d]' : 'text-[#74c69d]'}`} />
+                            <p className={`text-[10px] font-semibold ${isNow ? 'text-white/70' : 'text-[#52796f]/80'}`}>{label}</p>
+                            <p className={`text-sm font-black ${isNow ? 'text-white' : 'text-[#1b4332]'}`}>{Math.round(weather.hourly.temperature_2m[i])}°</p>
                           </div>
                         );
                       })()
@@ -928,7 +954,7 @@ export default function Hossegor2026() {
                         >
                           <div className="flex items-center gap-2 text-xs font-bold opacity-80">
                             <CalendarDays className="h-4 w-4" />
-                            {count} stops
+                            {count} étape{count > 1 ? 's' : ''}
                           </div>
                           <p className="mt-2 text-base font-black">
                             {dayItem.short}
@@ -969,6 +995,7 @@ export default function Hossegor2026() {
                       onEdit={openEdit}
                       onDelete={deleteActivity}
                       onFavorite={toggleFavorite}
+                      onToggleDone={toggleDone}
                     />
                   ))
                 ) : (
@@ -1054,6 +1081,12 @@ export default function Hossegor2026() {
           onEdit={openEdit}
           onDelete={deleteActivity}
           onFavorite={toggleFavorite}
+          onToggleDone={toggleDone}
+          onUpdateNote={(id, note) =>
+            setActivities((cur) =>
+              cur.map((a) => (a.id === id ? { ...a, quickNote: note } : a))
+            )
+          }
           onMap={() => {
             setActiveNav("map");
             setSelectedId(null);
@@ -1083,7 +1116,9 @@ export default function Hossegor2026() {
   );
 }
 
-function DetailView({ activity, onClose, onEdit, onDelete, onFavorite, onMap }) {
+function DetailView({ activity, onClose, onEdit, onDelete, onFavorite, onMap, onToggleDone, onUpdateNote }) {
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteValue, setNoteValue] = useState(activity.quickNote || "");
   return (
     <section className="fixed inset-0 z-50 overflow-y-auto bg-[#edf6f0] font-['Inter',_'Montserrat',sans-serif] text-[#1b4332]">
       <div className="mx-auto min-h-screen max-w-md bg-white pb-8">
@@ -1141,9 +1176,35 @@ function DetailView({ activity, onClose, onEdit, onDelete, onFavorite, onMap }) 
 
         <div className="px-5 pt-5">
           <div className="grid grid-cols-3 gap-2">
-            <InfoChip icon={Navigation} label="Distance" value={activity.distance} />
-            <InfoChip icon={Clock} label="Temps" value={activity.duration} />
-            <InfoChip icon={CloudSun} label="Météo" value={activity.weather} />
+            <InfoChip icon={Navigation} label="Distance" value={activity.distance || 'N/A'} />
+            <InfoChip icon={Clock} label="Temps" value={activity.duration || 'N/A'} />
+            <InfoChip icon={CloudSun} label="Météo" value={activity.weather || 'N/A'} />
+          </div>
+
+          {/* Statut + Lien réservation */}
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              onClick={() => onToggleDone(activity.id)}
+              className={`flex-1 rounded-2xl py-3 text-sm font-black transition ${
+                activity.done
+                  ? 'bg-[#74c69d] text-[#1b4332]'
+                  : 'bg-[#edf6f0] text-[#52796f] hover:bg-[#74c69d] hover:text-[#1b4332]'
+              }`}
+            >
+              {activity.done ? '✓ Marqué comme fait' : 'Marquer comme fait'}
+            </button>
+            {activity.link && (
+              <a
+                href={activity.link.startsWith('http') || activity.link.startsWith('tel') ? activity.link : `https://${activity.link}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-2xl bg-[#2d6a4f] px-4 py-3 text-sm font-black text-white"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Réserver
+              </a>
+            )}
           </div>
 
           <div className="mt-6 rounded-[2rem] bg-[#edf6f0] p-5">
@@ -1182,6 +1243,36 @@ function DetailView({ activity, onClose, onEdit, onDelete, onFavorite, onMap }) 
             </p>
           </div>
 
+          {/* Note rapide */}
+          <div className="mt-6 rounded-[2rem] bg-amber-50 p-4 border border-amber-100">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-black uppercase text-amber-700">Note perso</p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (editingNote) onUpdateNote(activity.id, noteValue);
+                  setEditingNote(!editingNote);
+                }}
+                className="text-xs font-bold text-amber-700 underline"
+              >
+                {editingNote ? 'Sauvegarder' : 'Modifier'}
+              </button>
+            </div>
+            {editingNote ? (
+              <textarea
+                value={noteValue}
+                onChange={(e) => setNoteValue(e.target.value)}
+                rows={3}
+                className="w-full resize-none rounded-xl bg-white px-3 py-2 text-sm font-semibold text-[#1b4332] outline-none"
+                placeholder="Ex: réserver à l'avance, demander terrasse..."
+              />
+            ) : (
+              <p className="text-sm font-semibold text-amber-900">
+                {noteValue || <span className="italic text-amber-400">Aucune note. Touche Modifier pour en ajouter.</span>}
+              </p>
+            )}
+          </div>
+
           <div className="mt-8 grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -1211,6 +1302,7 @@ function MapView({ activities, onOpen }) {
   const [route, setRoute] = useState(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeMessage, setRouteMessage] = useState("");
+  const [mapDay, setMapDay] = useState("all");
 
   const locateUser = () =>
     new Promise((resolve, reject) => {
@@ -1291,6 +1383,31 @@ function MapView({ activities, onOpen }) {
 
   return (
     <section>
+      <div className="mb-4 -mx-0 overflow-x-auto">
+        <div className="flex gap-2 pb-1">
+          <button
+            type="button"
+            onClick={() => setMapDay("all")}
+            className={`shrink-0 rounded-full px-4 py-2 text-xs font-black transition ${
+              mapDay === "all" ? "bg-[#1b4332] text-white" : "bg-white text-[#52796f]"
+            }`}
+          >
+            Tous
+          </button>
+          {days.map((d) => (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => setMapDay(d.id)}
+              className={`shrink-0 rounded-full px-4 py-2 text-xs font-black transition ${
+                mapDay === d.id ? "bg-[#1b4332] text-white" : "bg-white text-[#52796f]"
+              }`}
+            >
+              {d.short}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="mb-5 flex items-end justify-between gap-4">
         <div>
           <p className="text-sm font-bold text-[#52796f]">Exploration</p>
@@ -1333,7 +1450,7 @@ function MapView({ activities, onOpen }) {
               </Popup>
             </Marker>
           )}
-          {activities.map((activity) => (
+          {(mapDay === "all" ? activities : activities.filter(a => a.day === mapDay)).map((activity) => (
             <Marker
               key={activity.id}
               position={activity.coords}
@@ -1408,50 +1525,101 @@ function MapView({ activities, onOpen }) {
 }
 
 function ProfileView({ activities, budget, onReset }) {
-  const favoriteCount = activities.filter((activity) => activity.favorite).length;
-  const paidCount = activities.filter((activity) => activity.price > 0).length;
+  const favoriteCount = activities.filter((a) => a.favorite).length;
+  const doneCount = activities.filter((a) => a.done).length;
+  const favBudget = activities.filter((a) => a.favorite).reduce((s, a) => s + Number(a.price), 0);
   const averageRating =
-    activities.reduce((sum, activity) => sum + Number(activity.rating), 0) /
-    Math.max(activities.length, 1);
+    activities.reduce((sum, a) => sum + Number(a.rating), 0) / Math.max(activities.length, 1);
+
+  const urgences = [
+    { label: "SAMU", tel: "tel:15", icon: "🚑" },
+    { label: "Pompiers", tel: "tel:18", icon: "🚒" },
+    { label: "Police", tel: "tel:17", icon: "🚔" },
+    { label: "Urgences EU", tel: "tel:112", icon: "🆘" },
+  ];
 
   return (
     <section className="space-y-5">
+      {/* Carte identité */}
       <div className="rounded-[2rem] bg-[#1b4332] p-5 text-white shadow-[0_18px_45px_rgba(27,67,50,0.22)]">
         <div className="flex items-center gap-4">
           <div className="grid h-16 w-16 place-items-center rounded-full bg-[#74c69d] text-2xl font-black text-[#1b4332]">
             H
           </div>
           <div>
-            <p className="text-sm font-semibold text-white/70">Profil voyage</p>
+            <p className="text-sm font-semibold text-white/70">Séjour</p>
             <h2 className="text-2xl font-black">Hossegor 2026</h2>
+            <p className="text-xs text-white/60">04 – 06 mai · Capbreton crew</p>
           </div>
         </div>
-        <div className="mt-6 grid grid-cols-3 gap-3">
-          <div className="rounded-3xl bg-white/10 p-3">
-            <p className="text-2xl font-black">{activities.length}</p>
-            <p className="text-xs font-bold text-white/70">Étapes</p>
+        <div className="mt-6 grid grid-cols-4 gap-2">
+          <div className="rounded-2xl bg-white/10 p-3 text-center">
+            <p className="text-xl font-black">{activities.length}</p>
+            <p className="text-[10px] font-bold text-white/70">Étapes</p>
           </div>
-          <div className="rounded-3xl bg-white/10 p-3">
-            <p className="text-2xl font-black">{favoriteCount}</p>
-            <p className="text-xs font-bold text-white/70">Favoris</p>
+          <div className="rounded-2xl bg-white/10 p-3 text-center">
+            <p className="text-xl font-black">{doneCount}</p>
+            <p className="text-[10px] font-bold text-white/70">Faits</p>
           </div>
-          <div className="rounded-3xl bg-white/10 p-3">
-            <p className="text-2xl font-black">{averageRating.toFixed(1)}</p>
-            <p className="text-xs font-bold text-white/70">Note</p>
+          <div className="rounded-2xl bg-white/10 p-3 text-center">
+            <p className="text-xl font-black">{favoriteCount}</p>
+            <p className="text-[10px] font-bold text-white/70">Favoris</p>
+          </div>
+          <div className="rounded-2xl bg-white/10 p-3 text-center">
+            <p className="text-xl font-black">{averageRating.toFixed(1)}</p>
+            <p className="text-[10px] font-bold text-white/70">Note</p>
           </div>
         </div>
       </div>
 
+      {/* Budget */}
       <div className="grid grid-cols-2 gap-4">
         <div className="rounded-[2rem] bg-white p-5 shadow-sm">
           <Euro className="h-6 w-6 text-[#2d6a4f]" />
-          <p className="mt-5 text-sm font-bold text-[#52796f]">Budget total</p>
+          <p className="mt-4 text-sm font-bold text-[#52796f]">Budget total</p>
           <p className="text-2xl font-black">{currency.format(budget)}</p>
         </div>
         <div className="rounded-[2rem] bg-white p-5 shadow-sm">
-          <Navigation className="h-6 w-6 text-[#2d6a4f]" />
-          <p className="mt-5 text-sm font-bold text-[#52796f]">Payants</p>
-          <p className="text-2xl font-black">{paidCount}</p>
+          <Heart className="h-6 w-6 text-rose-400" />
+          <p className="mt-4 text-sm font-bold text-[#52796f]">Budget favoris</p>
+          <p className="text-2xl font-black">{currency.format(favBudget)}</p>
+        </div>
+      </div>
+
+      {/* Hébergement */}
+      <div className="rounded-[2rem] bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-black uppercase text-[#52796f]">🏠 Hébergement</p>
+            <p className="mt-1 font-black text-[#1b4332]">Airbnb Capbreton centre</p>
+            <p className="text-sm text-[#52796f]">Check-in lundi 16h00</p>
+          </div>
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=43.6429,-1.4319"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 rounded-full bg-[#1b4332] px-4 py-2.5 text-xs font-black text-white"
+          >
+            <Navigation className="h-3.5 w-3.5" />
+            Y aller
+          </a>
+        </div>
+      </div>
+
+      {/* Numéros utiles */}
+      <div className="rounded-[2rem] bg-white p-5 shadow-sm">
+        <p className="mb-3 text-xs font-black uppercase text-[#52796f]">📞 Numéros utiles</p>
+        <div className="grid grid-cols-2 gap-2">
+          {urgences.map((u) => (
+            <a
+              key={u.label}
+              href={u.tel}
+              className="flex items-center gap-2 rounded-2xl bg-[#edf6f0] px-3 py-3 text-sm font-bold text-[#1b4332] hover:bg-[#74c69d]/30"
+            >
+              <span>{u.icon}</span>
+              {u.label}
+            </a>
+          ))}
         </div>
       </div>
 
@@ -1460,7 +1628,7 @@ function ProfileView({ activities, budget, onReset }) {
         onClick={onReset}
         className="w-full rounded-3xl bg-white px-5 py-4 text-sm font-black text-[#1b4332] shadow-sm"
       >
-        Restaurer l'itinéraire
+        Restaurer l'itinéraire initial
       </button>
     </section>
   );
@@ -1710,6 +1878,19 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
               rows={4}
               className="w-full resize-none rounded-[1.75rem] border-0 bg-white px-4 py-4 text-sm font-bold leading-6 outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
               placeholder="Notes privées"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-2 flex items-center gap-2 text-xs font-black uppercase text-[#52796f]">
+              <ExternalLink className="h-4 w-4" />
+              Lien / Téléphone (optionnel)
+            </span>
+            <input
+              value={form.link || ''}
+              onChange={(event) => update("link", event.target.value)}
+              className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+              placeholder="https://restaurant.fr ou tel:0556..."
             />
           </label>
         </div>
