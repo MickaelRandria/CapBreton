@@ -958,7 +958,7 @@ INSTRUCTIONS :
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Filtrer les activités..."
-              className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-[#52796f]/70"
+              className="min-w-0 flex-1 bg-transparent text-base placeholder:text-[#52796f]/70"
             />
             <button
               type="button"
@@ -1378,7 +1378,7 @@ function DetailView({ activity, onClose, onEdit, onDelete, onFavorite, onMap, on
                 value={noteValue}
                 onChange={(e) => setNoteValue(e.target.value)}
                 rows={3}
-                className="w-full resize-none rounded-xl bg-white px-3 py-2 text-sm font-semibold text-[#1b4332] outline-none"
+                className="w-full resize-none rounded-xl bg-white px-3 py-2 text-base"
                 placeholder="Ex: réserver à l'avance, demander terrasse..."
               />
             ) : (
@@ -1802,7 +1802,7 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
             <input
               value={form.title}
               onChange={(event) => update("title", event.target.value)}
-              className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+              className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-base ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
               placeholder="Nom de l'activité"
             />
           </label>
@@ -1815,7 +1815,7 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
               <select
                 value={form.day}
                 onChange={(event) => update("day", event.target.value)}
-                className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+                className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-base ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
               >
                 {days.map((day) => (
                   <option key={day.id} value={day.id}>
@@ -1831,7 +1831,7 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
               <input
                 value={form.time}
                 onChange={(event) => update("time", event.target.value)}
-                className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+                className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-base ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
                 placeholder="12h00"
               />
             </label>
@@ -1845,7 +1845,7 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
               <select
                 value={form.category}
                 onChange={(event) => update("category", event.target.value)}
-                className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+                className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-base ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
               >
                 {categories.map((category) => (
                   <option key={category.label} value={category.label}>
@@ -1863,7 +1863,7 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
                 min="0"
                 value={form.price}
                 onChange={(event) => update("price", event.target.value)}
-                className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+                className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-base ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
               />
             </label>
           </div>
@@ -1880,7 +1880,7 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
                 step="0.1"
                 value={form.rating}
                 onChange={(event) => update("rating", event.target.value)}
-                className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+                className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-base ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
               />
             </label>
             <label className="relative block">
@@ -1912,7 +1912,7 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
                   setShowSuggestions(true);
                 }}
                 onFocus={() => setShowSuggestions(true)}
-                className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+                className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-base ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
                 placeholder="Rechercher une adresse..."
               />
               {showSuggestions && suggestions.length > 0 && (
@@ -1953,7 +1953,7 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
                 reader.onload = (e) => update("image", e.target.result);
                 reader.readAsDataURL(file);
               }}
-              className="w-full rounded-3xl border-0 bg-white px-4 py-3 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+              className="w-full rounded-3xl border-0 bg-white px-4 py-3 text-base ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
             />
             {form.image && form.image.startsWith("data:image") && (
               <img src={form.image} alt="Aperçu" className="mt-2 h-16 w-16 rounded-xl object-cover" />
@@ -1966,19 +1966,19 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
             <input
               value={form.distance}
               onChange={(event) => update("distance", event.target.value)}
-              className="w-full rounded-3xl border-0 bg-white px-3 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+              className="w-full rounded-3xl border-0 bg-white px-3 py-4 text-base ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
               placeholder="Distance"
             />
             <input
               value={form.duration}
               onChange={(event) => update("duration", event.target.value)}
-              className="w-full rounded-3xl border-0 bg-white px-3 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+              className="w-full rounded-3xl border-0 bg-white px-3 py-4 text-base ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
               placeholder="Temps"
             />
             <input
               value={form.weather}
               onChange={(event) => update("weather", event.target.value)}
-              className="w-full rounded-3xl border-0 bg-white px-3 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+              className="w-full rounded-3xl border-0 bg-white px-3 py-4 text-base ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
               placeholder="Météo"
             />
           </div>
@@ -1991,7 +1991,7 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
               value={form.description}
               onChange={(event) => update("description", event.target.value)}
               rows={4}
-              className="w-full resize-none rounded-[1.75rem] border-0 bg-white px-4 py-4 text-sm font-bold leading-6 outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+              className="w-full resize-none rounded-[1.75rem] border-0 bg-white px-4 py-4 text-base ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
               placeholder="Notes privées"
             />
           </label>
@@ -2004,7 +2004,7 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
             <input
               value={form.link || ''}
               onChange={(event) => update("link", event.target.value)}
-              className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+              className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-base ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
               placeholder="https://restaurant.fr ou tel:0556..."
             />
           </label>
@@ -2137,7 +2137,7 @@ function AIView({ messages, input, loading, onInputChange, onSend, onAddActivity
           onChange={(e) => onInputChange(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && onSend()}
           placeholder="Pose ta question à Gemini..."
-          className="flex-1 rounded-3xl bg-white px-4 py-3.5 text-sm font-semibold outline-none shadow-sm ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-violet-400 placeholder:text-[#52796f]/60"
+          className="flex-1 rounded-3xl bg-white px-4 py-3.5 text-base shadow-sm ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-violet-400 placeholder:text-[#52796f]/60"
         />
         <button
           type="button"
