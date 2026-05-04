@@ -58,7 +58,7 @@ function getWeatherInfo(code) {
 }
 
 const STORAGE_KEY = "hossegor-2026-activities";
-const GEMINI_KEY = "AIzaSyBKtA4WKsTrXcE24No1DZ3sHmgAaa9BXvk";
+const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const days = [
   { id: "lundi", short: "Lundi 04", label: "Lundi 04 mai" },
