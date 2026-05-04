@@ -7,6 +7,10 @@ import {
   CalendarDays,
   ChevronLeft,
   Clock,
+  Cloud,
+  CloudDrizzle,
+  CloudRain,
+  CloudSnow,
   CloudSun,
   Edit3,
   Euro,
@@ -25,6 +29,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   Star,
+  Sun,
   Trash2,
   User,
   Utensils,
@@ -32,7 +37,23 @@ import {
   X,
   Download,
   Crosshair,
+  Zap,
 } from "lucide-react";
+
+// WMO Weather Interpretation Codes -> Icon + label
+function getWeatherInfo(code) {
+  if (code === 0) return { Icon: Sun, label: "Ensoleillé" };
+  if (code <= 2) return { Icon: CloudSun, label: "Nuageux" };
+  if (code === 3) return { Icon: Cloud, label: "Couvert" };
+  if (code <= 49) return { Icon: CloudDrizzle, label: "Brouillard" };
+  if (code <= 57) return { Icon: CloudDrizzle, label: "Bruine" };
+  if (code <= 67) return { Icon: CloudRain, label: "Pluie" };
+  if (code <= 77) return { Icon: CloudSnow, label: "Neige" };
+  if (code <= 82) return { Icon: CloudRain, label: "Averses" };
+  if (code <= 86) return { Icon: CloudSnow, label: "Grésil" };
+  if (code <= 99) return { Icon: Zap, label: "Orage" };
+  return { Icon: CloudSun, label: "Inconnu" };
+}
 
 const STORAGE_KEY = "hossegor-2026-activities";
 
@@ -682,12 +703,15 @@ export default function Hossegor2026() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {weather?.current && (
-                <div className="mr-1 flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 backdrop-blur-md border border-white/5">
-                  <CloudSun className="h-4 w-4" />
-                  <span className="text-xs font-bold">{Math.round(weather.current.temperature)}°C</span>
-                </div>
-              )}
+              {weather?.current && (() => {
+                const { Icon: WIcon, label } = getWeatherInfo(weather.current.weathercode);
+                return (
+                  <div className="mr-1 flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 backdrop-blur-md border border-white/5" title={label}>
+                    <WIcon className="h-4 w-4" />
+                    <span className="text-xs font-bold">{Math.round(weather.current.temperature)}°C</span>
+                  </div>
+                );
+              })()}
               <button
                 type="button"
                 onClick={() => {
@@ -866,13 +890,17 @@ export default function Hossegor2026() {
                       const now = new Date();
                       if (date < new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours())) return null;
                       if (date > new Date(now.getTime() + 24 * 60 * 60 * 1000)) return null;
-                      return (
-                        <div key={timeString} className="min-w-[70px] rounded-[1.25rem] bg-white p-3 text-center shadow-[0_8px_20px_rgba(27,67,50,0.04)]">
-                          <p className="text-[11px] font-bold text-[#52796f]">{date.getHours()}h</p>
-                          <CloudSun className="mx-auto my-1.5 h-6 w-6 text-[#74c69d]" />
-                          <p className="text-sm font-black text-[#1b4332]">{Math.round(weather.hourly.temperature_2m[i])}°</p>
-                        </div>
-                      );
+                      return (() => {
+                        const { Icon: WIcon, label } = getWeatherInfo(weather.hourly.weathercode[i]);
+                        return (
+                          <div key={timeString} className="min-w-[70px] rounded-[1.25rem] bg-white p-3 text-center shadow-[0_8px_20px_rgba(27,67,50,0.04)]">
+                            <p className="text-[11px] font-bold text-[#52796f]">{date.getHours()}h</p>
+                            <WIcon className="mx-auto my-1.5 h-6 w-6 text-[#74c69d]" />
+                            <p className="text-[10px] font-semibold text-[#52796f]/80">{label}</p>
+                            <p className="text-sm font-black text-[#1b4332]">{Math.round(weather.hourly.temperature_2m[i])}°</p>
+                          </div>
+                        );
+                      })()
                     })}
                   </div>
                 </section>
