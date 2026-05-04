@@ -790,7 +790,7 @@ export default function Hossegor2026() {
                 className="flex items-center justify-center gap-2 rounded-3xl bg-white px-3 py-3 text-xs font-black text-[#1b4332]"
               >
                 <Save className="h-4 w-4" />
-                Export
+                Exporter
               </button>
               <button
                 type="button"
@@ -806,7 +806,7 @@ export default function Hossegor2026() {
           <div className="mt-7 flex items-end justify-between gap-4">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#95d5b2]">
-                Travel guide
+                Guide de voyage
               </p>
               <h1 className="mt-2 text-4xl font-black leading-[0.95]">
                 HOSSEGOR
@@ -1393,7 +1393,7 @@ function MapView({ activities, onOpen }) {
               rel="noreferrer"
               className="rounded-full bg-[#1b4332] px-4 py-3 text-xs font-black text-white"
             >
-              GPS
+              Y aller
             </a>
           </div>
         ) : (
@@ -1429,7 +1429,7 @@ function ProfileView({ activities, budget, onReset }) {
         <div className="mt-6 grid grid-cols-3 gap-3">
           <div className="rounded-3xl bg-white/10 p-3">
             <p className="text-2xl font-black">{activities.length}</p>
-            <p className="text-xs font-bold text-white/70">Stops</p>
+            <p className="text-xs font-bold text-white/70">Étapes</p>
           </div>
           <div className="rounded-3xl bg-white/10 p-3">
             <p className="text-2xl font-black">{favoriteCount}</p>
@@ -1673,7 +1673,7 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
               className="w-full rounded-3xl border-0 bg-white px-4 py-3 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
             />
             {form.image && form.image.startsWith("data:image") && (
-              <img src={form.image} alt="Preview" className="mt-2 h-16 w-16 rounded-xl object-cover" />
+              <img src={form.image} alt="Aperçu" className="mt-2 h-16 w-16 rounded-xl object-cover" />
             )}
           </label>
 
