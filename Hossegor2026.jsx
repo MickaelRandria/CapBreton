@@ -30,6 +30,8 @@ import {
   Utensils,
   Waves,
   X,
+  Download,
+  Crosshair,
 } from "lucide-react";
 
 const STORAGE_KEY = "hossegor-2026-activities";
@@ -408,16 +410,16 @@ function ActivityCard({ activity, onOpen, onEdit, onDelete, onFavorite }) {
         </button>
       </div>
 
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center justify-between px-4 py-4">
         <div className="flex items-center gap-2 text-sm font-bold text-[#1b4332]">
           <MapPin className="h-4 w-4 text-[#2d6a4f]" />
-          <span>{activity.distance}</span>
+          <span className="truncate">{activity.distance}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => onEdit(activity)}
-            className="grid h-10 w-10 place-items-center rounded-full bg-[#e9f5ee] text-[#1b4332]"
+            className="grid h-8 w-8 place-items-center rounded-full text-[#52796f] transition hover:bg-black/5 hover:text-[#1b4332]"
             aria-label="Modifier"
           >
             <Edit3 className="h-4 w-4" />
@@ -425,7 +427,7 @@ function ActivityCard({ activity, onOpen, onEdit, onDelete, onFavorite }) {
           <button
             type="button"
             onClick={() => onDelete(activity.id)}
-            className="grid h-10 w-10 place-items-center rounded-full bg-[#fff1f2] text-rose-600"
+            className="grid h-8 w-8 place-items-center rounded-full text-rose-400 transition hover:bg-rose-50 hover:text-rose-600"
             aria-label="Supprimer"
           >
             <Trash2 className="h-4 w-4" />
@@ -459,6 +461,20 @@ export default function Hossegor2026() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ ...blankForm });
   const [formOpen, setFormOpen] = useState(false);
+  const [weather, setWeather] = useState(null);
+
+  useEffect(() => {
+    async function fetchWeather() {
+      try {
+        const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=43.66&longitude=-1.43&current_weather=true&hourly=temperature_2m,weathercode&forecast_days=2");
+        const data = await res.json();
+        setWeather({ current: data.current_weather, hourly: data.hourly });
+      } catch (err) {
+        console.error("Failed to fetch weather", err);
+      }
+    }
+    fetchWeather();
+  }, []);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(activities));
@@ -574,6 +590,25 @@ export default function Hossegor2026() {
     setToast("Recherche et filtres réinitialisés");
   };
 
+  const importTrip = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const payload = JSON.parse(e.target.result);
+        if (payload.activities) {
+          setActivities(payload.activities);
+          setToast("Itinéraire importé !");
+          setQuickMenuOpen(false);
+        }
+      } catch {
+        setToast("Fichier invalide");
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const exportTrip = () => {
     const payload = {
       app: "HOSSEGOR 2026",
@@ -647,6 +682,12 @@ export default function Hossegor2026() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {weather?.current && (
+                <div className="mr-1 flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 backdrop-blur-md border border-white/5">
+                  <CloudSun className="h-4 w-4" />
+                  <span className="text-xs font-bold">{Math.round(weather.current.temperature)}°C</span>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -703,14 +744,11 @@ export default function Hossegor2026() {
 
           {quickMenuOpen && (
             <div className="mt-5 grid grid-cols-2 gap-3 rounded-[2rem] bg-white/12 p-3 shadow-[0_18px_38px_rgba(0,0,0,0.16)] backdrop-blur">
-              <button
-                type="button"
-                onClick={openCreate}
-                className="flex items-center justify-center gap-2 rounded-3xl bg-white px-3 py-3 text-xs font-black text-[#1b4332]"
-              >
-                <Plus className="h-4 w-4" />
-                Ajouter
-              </button>
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-3xl bg-white px-3 py-3 text-xs font-black text-[#1b4332]">
+                <input type="file" accept=".json" onChange={importTrip} className="hidden" />
+                <Download className="h-4 w-4" />
+                Import
+              </label>
               <button
                 type="button"
                 onClick={() => {
@@ -751,9 +789,9 @@ export default function Hossegor2026() {
                 <span className="block text-[#b7e4c7]">2026</span>
               </h1>
             </div>
-            <div className="rounded-[1.75rem] bg-white/10 px-4 py-3 text-right backdrop-blur">
-              <p className="text-xs font-semibold text-white/65">Budget</p>
-              <p className="text-xl font-black text-white">
+            <div className="rounded-[1.5rem] bg-white/15 px-5 py-3 text-right shadow-sm backdrop-blur-md border border-white/10">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-white/80">Budget</p>
+              <p className="text-2xl font-black text-white">
                 {currency.format(totalBudget)}
               </p>
             </div>
@@ -791,13 +829,13 @@ export default function Hossegor2026() {
                       current === category.label ? null : category.label,
                     )
                   }
-                  className="flex min-w-0 flex-col items-center gap-2 text-xs font-bold"
+                  className="group flex min-w-0 flex-col items-center gap-2 text-xs font-bold"
                 >
                   <span
-                    className={`grid h-14 w-14 place-items-center rounded-full shadow-lg transition ${
+                    className={`grid h-14 w-14 place-items-center rounded-full shadow-lg transition duration-300 group-hover:-translate-y-1 group-hover:shadow-xl ${
                       active
                         ? "bg-[#74c69d] text-[#1b4332]"
-                        : "bg-white text-[#1b4332]"
+                        : "bg-white text-[#1b4332] group-hover:bg-[#e9f5ee]"
                     }`}
                   >
                     <Icon className="h-6 w-6" />
@@ -820,6 +858,26 @@ export default function Hossegor2026() {
             />
           ) : (
             <>
+              {activeNav === "home" && weather?.hourly && (
+                <section className="-mx-5 mb-5 overflow-x-auto px-5 pb-2">
+                  <div className="flex gap-3">
+                    {weather.hourly.time.map((timeString, i) => {
+                      const date = new Date(timeString);
+                      const now = new Date();
+                      if (date < new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours())) return null;
+                      if (date > new Date(now.getTime() + 24 * 60 * 60 * 1000)) return null;
+                      return (
+                        <div key={timeString} className="min-w-[70px] rounded-[1.25rem] bg-white p-3 text-center shadow-[0_8px_20px_rgba(27,67,50,0.04)]">
+                          <p className="text-[11px] font-bold text-[#52796f]">{date.getHours()}h</p>
+                          <CloudSun className="mx-auto my-1.5 h-6 w-6 text-[#74c69d]" />
+                          <p className="text-sm font-black text-[#1b4332]">{Math.round(weather.hourly.temperature_2m[i])}°</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
               {activeNav === "home" && (
                 <section className="-mx-5 overflow-x-auto px-5 pb-4">
                   <div className="flex gap-3">
@@ -865,11 +923,11 @@ export default function Hossegor2026() {
                     {activeNav === "favorites" ? "Favoris" : "Itinéraire"}
                   </h2>
                 </div>
-                <div className="rounded-3xl bg-white px-4 py-3 text-right shadow-sm">
-                  <p className="text-[11px] font-bold uppercase text-[#52796f]">
+                <div className="rounded-[1.5rem] bg-white px-5 py-3 text-right shadow-[0_8px_20px_rgba(27,67,50,0.06)] border border-[#e9f5ee]">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#52796f]">
                     Journée
                   </p>
-                  <p className="font-black">{currency.format(dayBudget)}</p>
+                  <p className="text-xl font-black text-[#1b4332]">{currency.format(dayBudget)}</p>
                 </div>
               </section>
 
@@ -899,17 +957,43 @@ export default function Hossegor2026() {
           )}
         </main>
 
-        <button
-          type="button"
-          onClick={openCreate}
-          className="fixed bottom-24 left-1/2 z-30 grid h-16 w-16 -translate-x-1/2 place-items-center rounded-full bg-[#2d6a4f] text-white shadow-[0_18px_38px_rgba(45,106,79,0.42)] md:bottom-28"
-          aria-label="Ajouter"
-        >
-          <Plus className="h-7 w-7" />
-        </button>
+        <nav className="fixed bottom-4 left-1/2 z-30 grid w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 grid-cols-5 gap-1 rounded-[2rem] bg-[#48a69e] p-2 shadow-[0_20px_60px_rgba(27,67,50,0.3)] backdrop-blur md:bottom-8">
+          {navItems.slice(0, 2).map((item) => {
+            const Icon = item.icon;
+            const active = activeNav === item.id;
 
-        <nav className="fixed bottom-4 left-1/2 z-30 grid w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 grid-cols-4 gap-1 rounded-[2rem] bg-[#48a69e] p-2 shadow-[0_20px_60px_rgba(27,67,50,0.3)] backdrop-blur md:bottom-8">
-          {navItems.map((item) => {
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveNav(item.id)}
+                className={`flex h-14 flex-col items-center justify-center gap-1 rounded-3xl text-[11px] font-black transition ${
+                  active
+                    ? "bg-white text-[#1b4332]"
+                    : "text-white/85 hover:bg-white/10"
+                }`}
+              >
+                <Icon
+                  className="h-5 w-5"
+                  fill={item.id === "favorites" && active ? "currentColor" : "none"}
+                />
+                {item.label}
+              </button>
+            );
+          })}
+          
+          <div className="relative flex justify-center">
+            <button
+              type="button"
+              onClick={openCreate}
+              className="absolute -top-8 grid h-16 w-16 place-items-center rounded-full bg-[#2d6a4f] text-white shadow-[0_18px_38px_rgba(45,106,79,0.42)] ring-[6px] ring-[#edf6f0] transition hover:scale-105"
+              aria-label="Ajouter"
+            >
+              <Plus className="h-7 w-7" />
+            </button>
+          </div>
+
+          {navItems.slice(2, 4).map((item) => {
             const Icon = item.icon;
             const active = activeNav === item.id;
 
@@ -1042,13 +1126,24 @@ function DetailView({ activity, onClose, onEdit, onDelete, onFavorite, onMap }) 
                   {activity.price ? currency.format(activity.price) : "Gratuit"}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={onMap}
-                className="rounded-full bg-[#1b4332] px-5 py-3 text-sm font-black text-white"
-              >
-                Voir la carte
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={onMap}
+                  className="rounded-full bg-[#1b4332] px-5 py-3 text-sm font-black text-white"
+                >
+                  Carte
+                </button>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${activity.coords[0]},${activity.coords[1]}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 rounded-full bg-[#2d6a4f] px-5 py-3 text-sm font-black text-white shadow-md"
+                >
+                  <Navigation className="h-4 w-4" />
+                  S'y rendre
+                </a>
+              </div>
             </div>
           </div>
 
@@ -1344,7 +1439,24 @@ function ProfileView({ activities, budget, onReset }) {
 }
 
 function ActivityForm({ form, editing, onChange, onClose, onSave }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const update = (field, value) => onChange({ ...form, [field]: value });
+
+  const searchAddress = async (query) => {
+    if (query.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
+      const data = await res.json();
+      setSuggestions(data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <section className="fixed inset-0 z-[60] overflow-y-auto bg-[#1b4332]/55 p-4 font-['Inter',_'Montserrat',sans-serif] backdrop-blur">
@@ -1460,15 +1572,58 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
                 className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
               />
             </label>
-            <label className="block">
-              <span className="mb-2 block text-xs font-black uppercase text-[#52796f]">
-                Lieu
+            <label className="relative block">
+              <span className="mb-2 flex items-center justify-between text-xs font-black uppercase text-[#52796f]">
+                Lieu ou Adresse
+                <button
+                  type="button"
+                  onClick={() => {
+                    if ("geolocation" in navigator) {
+                      navigator.geolocation.getCurrentPosition((pos) => {
+                        update("latitude", pos.coords.latitude);
+                        update("longitude", pos.coords.longitude);
+                        update("location", "Ma position actuelle");
+                        setShowSuggestions(false);
+                      });
+                    }
+                  }}
+                  className="text-[#2d6a4f] transition hover:scale-110 hover:text-[#1b4332]"
+                  title="Utiliser ma position GPS"
+                >
+                  <Crosshair className="h-4 w-4" />
+                </button>
               </span>
               <input
                 value={form.location}
-                onChange={(event) => update("location", event.target.value)}
+                onChange={(event) => {
+                  update("location", event.target.value);
+                  searchAddress(event.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
                 className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
+                placeholder="Rechercher une adresse..."
               />
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute left-0 top-full z-50 mt-2 max-h-48 w-full overflow-y-auto rounded-2xl bg-white p-2 shadow-xl ring-1 ring-[#d8eadf]">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s.place_id}
+                      type="button"
+                      onClick={() => {
+                        update("location", s.name || s.display_name.split(',')[0]);
+                        update("latitude", parseFloat(s.lat));
+                        update("longitude", parseFloat(s.lon));
+                        setShowSuggestions(false);
+                      }}
+                      className="w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-[#edf6f0]"
+                    >
+                      <p className="font-bold text-[#1b4332]">{s.name || s.display_name.split(',')[0]}</p>
+                      <p className="truncate text-xs text-[#52796f]">{s.display_name}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
             </label>
           </div>
 
@@ -1478,39 +1633,23 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
               Image
             </span>
             <input
-              value={form.image}
-              onChange={(event) => update("image", event.target.value)}
-              className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
-              placeholder="URL de l'image"
+              type="file"
+              accept="image/*"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => update("image", e.target.result);
+                reader.readAsDataURL(file);
+              }}
+              className="w-full rounded-3xl border-0 bg-white px-4 py-3 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
             />
+            {form.image && form.image.startsWith("data:image") && (
+              <img src={form.image} alt="Preview" className="mt-2 h-16 w-16 rounded-xl object-cover" />
+            )}
           </label>
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="mb-2 block text-xs font-black uppercase text-[#52796f]">
-                Latitude
-              </span>
-              <input
-                type="number"
-                step="0.0001"
-                value={form.latitude}
-                onChange={(event) => update("latitude", event.target.value)}
-                className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-2 block text-xs font-black uppercase text-[#52796f]">
-                Longitude
-              </span>
-              <input
-                type="number"
-                step="0.0001"
-                value={form.longitude}
-                onChange={(event) => update("longitude", event.target.value)}
-                className="w-full rounded-3xl border-0 bg-white px-4 py-4 text-sm font-bold outline-none ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
-              />
-            </label>
-          </div>
+          {/* Lat/Lng hidden - automatically managed by the Autocomplete */}
 
           <div className="grid grid-cols-3 gap-3">
             <input
