@@ -519,7 +519,23 @@ export default function Hossegor2026() {
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(activities));
+    try {
+      const payload = JSON.stringify(activities);
+      window.localStorage.setItem(STORAGE_KEY, payload);
+    } catch (e) {
+      const size = (() => {
+        try {
+          return JSON.stringify(activities).length;
+        } catch {
+          return "?";
+        }
+      })();
+      setTimeout(() => {
+        throw new Error(
+          `localStorage write failed: ${e.name} - ${e.message}. Activities count: ${activities.length}, payload size: ~${size} bytes`,
+        );
+      }, 0);
+    }
   }, [activities]);
 
   useEffect(() => {
@@ -560,7 +576,7 @@ export default function Hossegor2026() {
   const nextActivity = useMemo(() => {
     return activities
       .filter((activity) => activity.day === activeDay)
-      .sort((a, b) => a.time.localeCompare(b.time))[0];
+      .sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""))[0];
   }, [activities, activeDay]);
 
   const filteredActivities = useMemo(() => {
@@ -585,7 +601,7 @@ export default function Hossegor2026() {
           .toLowerCase()
           .includes(normalizedQuery);
       })
-      .sort((a, b) => a.time.localeCompare(b.time));
+      .sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""));
   }, [activities, activeCategory, activeDay, activeNav, query]);
 
   const navItems = [
@@ -1228,6 +1244,10 @@ INSTRUCTIONS :
           {toast}
         </div>
       )}
+
+      <div className="fixed bottom-1 left-1/2 z-[80] -translate-x-1/2 rounded-full bg-black/30 px-2 py-0.5 text-[9px] font-mono text-white/70 pointer-events-none">
+        build {typeof __BUILD_TIME__ !== "undefined" ? __BUILD_TIME__ : "dev"}
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
-const STATIC_CACHE = "hossegor-2026-static-v1";
-const RUNTIME_CACHE = "hossegor-2026-runtime-v1";
+const STATIC_CACHE = "hossegor-2026-static-v2";
+const RUNTIME_CACHE = "hossegor-2026-runtime-v2";
 
 const APP_SHELL = [
   "/",
@@ -20,16 +20,24 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   const expectedCaches = [STATIC_CACHE, RUNTIME_CACHE];
   event.waitUntil(
-    caches
-      .keys()
-      .then((cacheNames) =>
-        Promise.all(
-          cacheNames
-            .filter((cacheName) => !expectedCaches.includes(cacheName))
-            .map((cacheName) => caches.delete(cacheName))
-        )
-      )
-      .then(() => self.clients.claim())
+    (async () => {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames
+          .filter((name) => !expectedCaches.includes(name))
+          .map((name) => caches.delete(name))
+      );
+      await self.clients.claim();
+
+      const clients = await self.clients.matchAll({ type: "window" });
+      for (const client of clients) {
+        try {
+          client.navigate(client.url);
+        } catch {
+          /* navigate may be unsupported in some contexts */
+        }
+      }
+    })()
   );
 });
 
