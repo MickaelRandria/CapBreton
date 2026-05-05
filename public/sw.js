@@ -1,5 +1,5 @@
-const STATIC_CACHE = "hossegor-2026-static-v2";
-const RUNTIME_CACHE = "hossegor-2026-runtime-v2";
+const STATIC_CACHE = "hossegor-2026-static-v3";
+const RUNTIME_CACHE = "hossegor-2026-runtime-v3";
 
 const APP_SHELL = [
   "/",

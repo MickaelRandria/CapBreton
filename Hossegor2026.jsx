@@ -320,6 +320,37 @@ function loadActivities() {
   }
 }
 
+const IMAGE_MAX_WIDTH = 1024;
+const IMAGE_QUALITY = 0.7;
+const IMAGE_COMPRESS_THRESHOLD = 200_000;
+
+function compressDataURL(dataUrl, maxWidth = IMAGE_MAX_WIDTH, quality = IMAGE_QUALITY) {
+  return new Promise((resolve, reject) => {
+    if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:image")) {
+      resolve(dataUrl);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const ratio = img.width > maxWidth ? maxWidth / img.width : 1;
+        const w = Math.max(1, Math.round(img.width * ratio));
+        const h = Math.max(1, Math.round(img.height * ratio));
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = () => reject(new Error("image decode failed"));
+    img.src = dataUrl;
+  });
+}
+
 function activityToForm(activity) {
   return {
     ...blankForm,
@@ -537,6 +568,47 @@ export default function Hossegor2026() {
       }, 0);
     }
   }, [activities]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const needsMigration = activities.some(
+      (a) =>
+        typeof a.image === "string" &&
+        a.image.startsWith("data:image") &&
+        a.image.length > IMAGE_COMPRESS_THRESHOLD,
+    );
+    if (!needsMigration) return undefined;
+
+    (async () => {
+      const migrated = await Promise.all(
+        activities.map(async (a) => {
+          if (
+            typeof a.image === "string" &&
+            a.image.startsWith("data:image") &&
+            a.image.length > IMAGE_COMPRESS_THRESHOLD
+          ) {
+            try {
+              const small = await compressDataURL(a.image);
+              return { ...a, image: small };
+            } catch {
+              return a;
+            }
+          }
+          return a;
+        }),
+      );
+      if (!cancelled) {
+        setActivities(migrated);
+        setToast("Photos compressées pour libérer de l'espace");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // run only once at mount; intentionally not depending on activities
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handleInstallPrompt = (event) => {
@@ -1360,7 +1432,7 @@ function DetailView({ activity, onClose, onEdit, onDelete, onFavorite, onMap, on
                   Carte
                 </button>
                 <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${activity.coords[0]},${activity.coords[1]}`}
+                  href={`https://www.google.com/maps/search/?api=1&query=${activity.coords?.[0] ?? 43.66},${activity.coords?.[1] ?? -1.43}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 rounded-full bg-[#2d6a4f] px-5 py-3 text-sm font-black text-white shadow-md"
@@ -1971,7 +2043,15 @@ function ActivityForm({ form, editing, onChange, onClose, onSave }) {
                 const file = event.target.files?.[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = (e) => update("image", e.target.result);
+                reader.onload = async (e) => {
+                  const raw = e.target.result;
+                  try {
+                    const compressed = await compressDataURL(raw);
+                    update("image", compressed);
+                  } catch {
+                    update("image", raw);
+                  }
+                };
                 reader.readAsDataURL(file);
               }}
               className="w-full rounded-3xl border-0 bg-white px-4 py-3 text-base ring-1 ring-[#d8eadf] focus:ring-2 focus:ring-[#2d6a4f]"
